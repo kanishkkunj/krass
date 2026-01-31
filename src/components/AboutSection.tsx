@@ -10,12 +10,15 @@ const AboutSection = () => {
     { name: "Brand 2", logo: "/logos/IMG_2315.PNG" },
     { name: "Brand 3", logo: "/logos/logo.svg" },
     { name: "Mars", logo: "/logos/Mars logo.jpg.jpeg" },
-    { name: "Seven Magpie", logo: "/logos/seven magpie logo.png" },
-    { name: "Studomatrix 1", logo: "/logos/STUDOMATRIX-03.png" },
-    { name: "Studomatrix 2", logo: "/logos/STUDOMATRIX-05-04.png" },
+    { name: "Seven Magpie", logo: "/logos/seven-magpie-productions.png" },
+    { name: "Studomatrix", logo: "/logos/STUDOMATRIX-05-04.png" },
     { name: "Taj Lands End", logo: "/logos/taj Lands End logo.jpg.jpeg" },
     { name: "TIV19", logo: "/logos/TIV19-01.png" }
   ];
+  const brandScaleClasses: Record<string, string> = {
+    Studomatrix: "scale-150",
+    "Seven Magpie": "scale-[1.8]"
+  };
   return <section id="about" className="section-padding bg-card relative overflow-hidden">
       {/* Decorative gradient */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -39,7 +42,7 @@ const AboutSection = () => {
             </AnimatedSection>
 
             <AnimatedSection delay={0.2}>
-              <p className="text-body mb-6">Your go-to source for exquisitely designed and flawlessly executed events. Situated in Mumbai, we have been serving the local community since 2024. With strong partnerships with top vendors, we take pride in curating unforgettable events. Our team of creative experts excels in turning your vision into reality, handling every aspect from logistics to entertainment. Let us handle the details while you savour the moment.
+              <p className="text-body mb-6">Your go-to source for exquisitely designed and flawlessly executed events. Situated in Mumbai, we have been serving the global community since 2024. With strong partnerships with top vendors, we take pride in curating unforgettable events. Our team of creative experts excels in turning your vision into reality, handling every aspect from logistics to entertainment. Let us handle the details while you savour the moment.
 
             </p>
             </AnimatedSection>
@@ -147,7 +150,7 @@ const AboutSection = () => {
                     <img
                       src={brand.logo}
                       alt={brand.name}
-                      className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      className={`w-full h-full object-scale-down ${brandScaleClasses[brand.name] ?? ""}`}
                     />
                   </div>
                 </motion.div>
@@ -165,7 +168,7 @@ const AboutSection = () => {
                     <img
                       src={brand.logo}
                       alt={brand.name}
-                      className="max-w-full max-h-full object-contain grayscale hover:grayscale-0 transition-all duration-300"
+                      className={`w-full h-full object-scale-down ${brandScaleClasses[brand.name] ?? ""}`}
                     />
                   </div>
                 </motion.div>

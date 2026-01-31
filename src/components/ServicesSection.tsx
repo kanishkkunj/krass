@@ -2,13 +2,24 @@ import { motion } from "framer-motion";
 import AnimatedSection from "./AnimatedSection";
 import { Briefcase, PartyPopper, Crown, Heart } from "lucide-react";
 const ServicesSection = () => {
+  const scrollToPortfolio = (category: string) => {
+    const element = document.getElementById("portfolio");
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth" });
+      // Dispatch custom event to set filter in portfolio
+      window.dispatchEvent(new CustomEvent("portfolioFilter", { detail: { category } }));
+    }
+  };
+
   const services = [{
     category: "Corporate Events",
+    filterValue: "corporate",
     icon: Briefcase,
     description: "Be it MICE or team building, we bring fresh concepts and flawless management to upscale your corporate event experience.",
     items: ["Conferences & Seminars", "Product Launches", "Team Building Events", "Corporate Galas", "Award Ceremonies", "Advertising Shoot Setups"]
   }, {
     category: "Social Events",
+    filterValue: "social",
     icon: PartyPopper,
     description: "Create magical moments that will be cherished forever with our personalized social event services.",
     items: ["Wedding Celebrations", "Concept Parties", "Private Gatherings", "Live Shows", "Fleas & Fests"]
@@ -57,11 +68,16 @@ const ServicesSection = () => {
         {/* Services grid */}
         <div className="grid md:grid-cols-2 gap-8 mb-16">
           {services.map((service, index) => <AnimatedSection key={service.category} delay={0.1 * index} direction={index === 0 ? "right" : "left"}>
-              <motion.div className="card-elevated p-8 h-full group" whileHover={{
-            y: -5
-          }} transition={{
-            duration: 0.3
-          }}>
+              <motion.button 
+                onClick={() => scrollToPortfolio(service.filterValue)}
+                className="card-elevated p-8 h-full group w-full text-left cursor-pointer hover:shadow-dramatic transition-shadow" 
+                whileHover={{
+                  y: -5
+                }} 
+                transition={{
+                  duration: 0.3
+                }}
+              >
                 {/* Icon */}
                 <div className="w-16 h-16 mb-6 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
                   <service.icon className="w-8 h-8 text-primary" />
@@ -85,7 +101,7 @@ const ServicesSection = () => {
 
                 {/* Hover accent line */}
                 <div className="absolute bottom-0 left-0 w-0 h-[2px] bg-primary group-hover:w-full transition-all duration-500" />
-              </motion.div>
+              </motion.button>
             </AnimatedSection>)}
         </div>
 

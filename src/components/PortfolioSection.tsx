@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedSection from "./AnimatedSection";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -10,7 +10,6 @@ type GalleryItem = {
   id: number;
   url: string;
   category: "corporate" | "social" | "wedding";
-  title: string;
   description?: string;
   aspectRatio: AspectRatio;
 };
@@ -20,18 +19,93 @@ const PortfolioSection = () => {
   const [filter, setFilter] = useState<"all" | "corporate" | "social" | "wedding">("all");
   const [itemsWithAspects, setItemsWithAspects] = useState<GalleryItem[]>([]);
 
-  // Build gallery items from imported images
-  const baseGalleryItems: Omit<GalleryItem, "aspectRatio">[] = [];
-  Object.entries(imagesByCategory).forEach(([category, urls]) => {
-    urls.forEach((u, i) => {
-      baseGalleryItems.push({
-        id: baseGalleryItems.length + 1,
-        url: u,
-        category: category as "corporate" | "social" | "wedding",
-        title: decodeURIComponent(u.split('/').pop() || ""),
+  const baseGalleryItems = useMemo(() => {
+    const items: Omit<GalleryItem, "aspectRatio">[] = [];
+    Object.entries(imagesByCategory).forEach(([category, urls]) => {
+      urls.forEach((url) => {
+        items.push({
+          id: items.length + 1,
+          url,
+          category: category as "corporate" | "social" | "wedding",
+        });
       });
     });
-  });
+    return items;
+  }, []);
+
+  const curatedAllItems = useMemo(() => {
+    if (!baseGalleryItems.length) return [];
+    const desiredCount = Math.min(9, Math.max(5, baseGalleryItems.length));
+    const shuffled = [...baseGalleryItems];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+
+    const selection: Omit<GalleryItem, "aspectRatio">[] = [];
+    const includedIds = new Set<number>();
+    const ensureCategories: GalleryItem["category"][] = ["corporate", "social", "wedding"];
+
+    const takeMatching = (predicate: (item: Omit<GalleryItem, "aspectRatio">) => boolean) => {
+      const idx = shuffled.findIndex((item) => predicate(item) && !includedIds.has(item.id));
+      if (idx !== -1) {
+        const [picked] = shuffled.splice(idx, 1);
+        selection.push(picked);
+        includedIds.add(picked.id);
+      }
+    };
+
+    ensureCategories.forEach((category) => {
+      takeMatching((item) => item.category === category);
+    });
+
+    while (selection.length < desiredCount && shuffled.length) {
+      const candidate = shuffled.pop();
+      if (candidate && !includedIds.has(candidate.id)) {
+        selection.push(candidate);
+        includedIds.add(candidate.id);
+      }
+    }
+
+    return selection;
+  }, [baseGalleryItems]);
+
+  const highlightDisplayItems = useMemo(() => {
+    if (!curatedAllItems.length || !itemsWithAspects.length) return [];
+    const lookup = new Map<number, GalleryItem>();
+    itemsWithAspects.forEach((item) => lookup.set(item.id, item));
+    const prioritized = curatedAllItems
+      .map((item) => lookup.get(item.id))
+      .filter(Boolean) as GalleryItem[];
+
+    const landscapes = prioritized.filter((item) => item.aspectRatio === "landscape");
+    const squares = prioritized.filter((item) => item.aspectRatio === "square");
+    const portraits = prioritized.filter((item) => item.aspectRatio === "portrait");
+
+    const arranged: GalleryItem[] = [];
+    const buckets = [landscapes, squares, portraits];
+    while (buckets.some((bucket) => bucket.length)) {
+      buckets.forEach((bucket) => {
+        if (bucket.length) {
+          arranged.push(bucket.shift()!);
+        }
+      });
+    }
+
+    return arranged;
+  }, [curatedAllItems, itemsWithAspects]);
+
+  // Listen for portfolio filter events from Services section
+  useEffect(() => {
+    const handlePortfolioFilter = (event: Event) => {
+      const customEvent = event as CustomEvent;
+      const category = customEvent.detail.category;
+      setFilter(category);
+    };
+
+    window.addEventListener("portfolioFilter", handlePortfolioFilter);
+    return () => window.removeEventListener("portfolioFilter", handlePortfolioFilter);
+  }, []);
 
   // Detect aspect ratios from actual image dimensions
   useEffect(() => {
@@ -62,14 +136,36 @@ const PortfolioSection = () => {
   }, []);
 
   const categories = [
-    { value: "all", label: "All Events" },
+    { value: "all", label: "Highlights" },
     { value: "corporate", label: "Corporate" },
     { value: "social", label: "Social" },
     { value: "wedding", label: "Weddings" },
   ] as const;
 
-  const filteredItems = itemsWithAspects.filter(
-    (item) => filter === "all" || item.category === filter
+  const filteredItems = useMemo(() => {
+    if (filter === "all") {
+      return highlightDisplayItems;
+    }
+    return itemsWithAspects.filter((item) => item.category === filter);
+  }, [filter, highlightDisplayItems, itemsWithAspects]);
+
+  const isHighlightsView = filter === "all";
+
+  const renderCard = (item: GalleryItem, options?: { highlight?: boolean }) => (
+    <div
+      className={`portfolio-card-surface ${
+        options?.highlight ? "aspect-[4/3]" : getAspectClass(item.aspectRatio)
+      }`}
+      onClick={() => setSelectedIndex(filteredItems.indexOf(item))}
+    >
+      <img src={item.url} alt={item.category} className="object-cover w-full h-full" />
+
+      <div className="portfolio-card-overlay" />
+
+      <div className="portfolio-card-badge">
+        {item.category}
+      </div>
+    </div>
   );
 
   const getAspectClass = (ratio: AspectRatio) => {
@@ -137,48 +233,13 @@ const PortfolioSection = () => {
         </div>
 
         {/* Masonry Grid */}
-        <motion.div layout className="masonry-grid">
-          <AnimatePresence mode="popLayout">
-            {filteredItems.map((item, index) => (
-              <motion.div
-                key={item.id}
-                layout
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.9 }}
-                transition={{ duration: 0.4, delay: index * 0.05 }}
-                className="masonry-item"
-              >
-                <motion.div
-                  className={`relative ${getAspectClass(item.aspectRatio)} bg-secondary rounded-lg overflow-hidden cursor-pointer group border border-border`}
-                  onClick={() => setSelectedIndex(filteredItems.indexOf(item))}
-                  whileHover={{ y: -5 }}
-                  transition={{ duration: 0.3 }}
-                >
-                    <img src={item.url} alt={item.title} className="object-cover w-full h-full" />
-
-                  {/* Overlay on hover */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                    <div className="absolute bottom-0 left-0 right-0 p-4">
-                      <span className="text-xs text-primary uppercase tracking-wider">
-                        {item.category}
-                      </span>
-                      <h3 className="font-display text-lg font-semibold text-foreground mt-1">
-                        {item.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground mt-1">{item.description}</p>
-                    </div>
-                  </div>
-
-                  {/* Category badge */}
-                  <div className="absolute top-3 left-3 px-3 py-1 bg-background/80 backdrop-blur-sm rounded-full text-xs text-primary uppercase tracking-wider">
-                    {item.category}
-                  </div>
-                </motion.div>
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </motion.div>
+        <div className={`masonry-grid ${isHighlightsView ? "highlights-grid" : ""}`}>
+          {filteredItems.map((item) => (
+            <div key={item.id} className="masonry-item">
+              {renderCard(item, { highlight: isHighlightsView })}
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Lightbox Modal */}
@@ -210,18 +271,10 @@ const PortfolioSection = () => {
               {selectedIndex !== null && (
                 <>
                   <div className="aspect-video bg-secondary flex items-center justify-center">
-                    <img src={filteredItems[selectedIndex].url} alt={filteredItems[selectedIndex].title} className="object-contain max-h-full max-w-full" />
+                    <img src={filteredItems[selectedIndex].url} alt={filteredItems[selectedIndex].category} className="object-contain max-h-full max-w-full" />
                   </div>
 
                   <div className="p-8">
-                    <span className="text-xs text-primary uppercase tracking-wider">
-                      {filteredItems[selectedIndex].category}
-                    </span>
-                    <h3 className="font-display text-2xl font-semibold text-foreground mt-2">
-                      {filteredItems[selectedIndex].title}
-                    </h3>
-                    <p className="text-body mt-3">{filteredItems[selectedIndex].description || ""}</p>
-
                     <div className="mt-6 flex items-center gap-3">
                       <button
                         onClick={() => setSelectedIndex((prev) => (prev === null ? null : (prev - 1 + filteredItems.length) % filteredItems.length))}

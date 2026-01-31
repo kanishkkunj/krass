@@ -2,7 +2,7 @@
 // Uses Vite's import.meta.glob to get asset URLs
 type Category = "corporate" | "social" | "wedding";
 
-const modules = import.meta.glob('../assets/portfolio/**/*.{jpg,jpeg,png,webp,gif}', { 
+const modules = import.meta.glob('../assets/portfolio/**/*.{jpg,jpeg,png,webp,gif,JPG,JPEG,PNG,WEBP,GIF}', { 
   eager: true, 
   query: '?url',
   import: 'default'

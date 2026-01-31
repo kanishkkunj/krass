@@ -174,7 +174,7 @@ const ConsultationSection = () => {
                       <label htmlFor="phone" className="block text-sm font-medium text-foreground mb-2">
                         Phone Number
                       </label>
-                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} className="input-field" placeholder="+1 234 567 890" />
+                      <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleChange} className="input-field" placeholder="+91 9876 543 210" />
                     </div>
                     <div>
                       <label htmlFor="eventType" className="block text-sm font-medium text-foreground mb-2">

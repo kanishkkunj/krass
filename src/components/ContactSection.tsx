@@ -15,6 +15,8 @@ const ContactSection = () => {
       label: "Call Us",
       value: "+91 7534907155 / +91 9924680500",
       href: "tel:+917534907155",
+      isPhone: true,
+      phones: ["+917534907155", "+919924680500"]
     },
     {
       icon: MapPin,
@@ -68,19 +70,42 @@ const ContactSection = () => {
             <div className="space-y-4 mb-10">
               {contactInfo.map((item, index) => (
                 <AnimatedSection key={item.label} delay={0.3 + index * 0.1}>
-                  <motion.a
-                    href={item.href}
-                    className="flex items-center gap-4 p-4 rounded-lg border border-border bg-background hover:border-primary/50 transition-all group"
-                    whileHover={{ x: 5 }}
-                  >
-                    <div className="w-12 h-12 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
-                      <item.icon className="w-5 h-5 text-primary" />
+                  {item.isPhone ? (
+                    <div className="flex items-center gap-4 p-4 rounded-lg border border-border bg-background hover:border-primary/50 transition-all group">
+                      <div className="w-12 h-12 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <item.icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">{item.label}</div>
+                        <div className="font-medium text-foreground flex gap-2">
+                          {item.phones && item.phones.map((phone, idx) => (
+                            <motion.a
+                              key={phone}
+                              href={`tel:${phone}`}
+                              className="text-primary hover:underline"
+                              whileHover={{ scale: 1.05 }}
+                            >
+                              {idx === 0 ? "+91 7534907155" : "+91 9924680500"}
+                            </motion.a>
+                          ))}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <div className="text-sm text-muted-foreground">{item.label}</div>
-                      <div className="font-medium text-foreground">{item.value}</div>
-                    </div>
-                  </motion.a>
+                  ) : (
+                    <motion.a
+                      href={item.href}
+                      className="flex items-center gap-4 p-4 rounded-lg border border-border bg-background hover:border-primary/50 transition-all group"
+                      whileHover={{ x: 5 }}
+                    >
+                      <div className="w-12 h-12 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                        <item.icon className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <div className="text-sm text-muted-foreground">{item.label}</div>
+                        <div className="font-medium text-foreground">{item.value}</div>
+                      </div>
+                    </motion.a>
+                  )}
                 </AnimatedSection>
               ))}
             </div>
@@ -117,7 +142,7 @@ const ContactSection = () => {
                 width="100%"
                 height="100%"
                 style={{ border: 0, minHeight: "400px" }}
-                allowFullScreen=""
+                allowFullScreen
                 loading="lazy"
                 referrerPolicy="no-referrer-when-downgrade"
                 className="absolute inset-0"
@@ -132,7 +157,7 @@ const ContactSection = () => {
                 transition={{ delay: 0.5 }}
               >
                 <h4 className="font-display text-lg font-semibold text-foreground mb-1">
-                  Krass Events HQ
+                  Krass Events 
                 </h4>
                 <p className="text-sm text-muted-foreground">
                   B15 Mathura Building, Malad West, Mumbai
