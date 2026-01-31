@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback, SyntheticEvent } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import AnimatedSection from "./AnimatedSection";
 import { X, ChevronLeft, ChevronRight } from "lucide-react";
@@ -15,23 +15,24 @@ type GalleryItem = {
 };
 
 const PortfolioSection = () => {
-  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const [filter, setFilter] = useState<"all" | "corporate" | "social" | "wedding">("all");
-  const [itemsWithAspects, setItemsWithAspects] = useState<GalleryItem[]>([]);
-
   const baseGalleryItems = useMemo(() => {
-    const items: Omit<GalleryItem, "aspectRatio">[] = [];
+    const items: GalleryItem[] = [];
     Object.entries(imagesByCategory).forEach(([category, urls]) => {
       urls.forEach((url) => {
         items.push({
           id: items.length + 1,
           url,
           category: category as "corporate" | "social" | "wedding",
+          aspectRatio: "square",
         });
       });
     });
     return items;
   }, []);
+
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [filter, setFilter] = useState<"all" | "corporate" | "social" | "wedding">("all");
+  const [itemsWithAspects, setItemsWithAspects] = useState<GalleryItem[]>(baseGalleryItems);
 
   const curatedAllItems = useMemo(() => {
     if (!baseGalleryItems.length) return [];
@@ -42,11 +43,11 @@ const PortfolioSection = () => {
       [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
 
-    const selection: Omit<GalleryItem, "aspectRatio">[] = [];
+    const selection: GalleryItem[] = [];
     const includedIds = new Set<number>();
     const ensureCategories: GalleryItem["category"][] = ["corporate", "social", "wedding"];
 
-    const takeMatching = (predicate: (item: Omit<GalleryItem, "aspectRatio">) => boolean) => {
+    const takeMatching = (predicate: (item: GalleryItem) => boolean) => {
       const idx = shuffled.findIndex((item) => predicate(item) && !includedIds.has(item.id));
       if (idx !== -1) {
         const [picked] = shuffled.splice(idx, 1);
@@ -107,32 +108,29 @@ const PortfolioSection = () => {
     return () => window.removeEventListener("portfolioFilter", handlePortfolioFilter);
   }, []);
 
-  // Detect aspect ratios from actual image dimensions
+  // Seed gallery with default ratios so UI renders immediately
   useEffect(() => {
-    const processImages = async () => {
-      const processed = await Promise.all(
-        baseGalleryItems.map(
-          (item) =>
-            new Promise<GalleryItem>((resolve) => {
-              const img = new Image();
-              img.onload = () => {
-                const ratio = img.width / img.height;
-                let aspectRatio: AspectRatio;
-                if (ratio < 0.8) aspectRatio = "portrait";
-                else if (ratio > 1.2) aspectRatio = "landscape";
-                else aspectRatio = "square";
-                resolve({ ...item, aspectRatio });
-              };
-              img.onerror = () => {
-                resolve({ ...item, aspectRatio: "square" });
-              };
-              img.src = item.url;
-            })
-        )
-      );
-      setItemsWithAspects(processed);
-    };
-    processImages();
+    setItemsWithAspects(baseGalleryItems);
+  }, [baseGalleryItems]);
+
+  const handleImageLoad = useCallback((event: SyntheticEvent<HTMLImageElement>, id: number) => {
+    const img = event.currentTarget;
+    if (!img.naturalWidth || !img.naturalHeight) return;
+    const ratio = img.naturalWidth / img.naturalHeight;
+    let aspectRatio: AspectRatio = "square";
+    if (ratio < 0.8) aspectRatio = "portrait";
+    else if (ratio > 1.2) aspectRatio = "landscape";
+
+    setItemsWithAspects((prev) => {
+      let changed = false;
+      const next = prev.map((item) => {
+        if (item.id !== id) return item;
+        if (item.aspectRatio === aspectRatio) return item;
+        changed = true;
+        return { ...item, aspectRatio };
+      });
+      return changed ? next : prev;
+    });
   }, []);
 
   const categories = [
@@ -151,14 +149,22 @@ const PortfolioSection = () => {
 
   const isHighlightsView = filter === "all";
 
-  const renderCard = (item: GalleryItem, options?: { highlight?: boolean }) => (
+  const renderCard = (item: GalleryItem, index: number, options?: { highlight?: boolean; priority?: boolean }) => (
     <div
       className={`portfolio-card-surface ${
         options?.highlight ? "aspect-[4/3]" : getAspectClass(item.aspectRatio)
       }`}
-      onClick={() => setSelectedIndex(filteredItems.indexOf(item))}
+      onClick={() => setSelectedIndex(index)}
     >
-      <img src={item.url} alt={item.category} className="object-cover w-full h-full" />
+      <img
+        src={item.url}
+        alt={item.category}
+        className="object-cover w-full h-full"
+        loading={options?.priority ? "eager" : "lazy"}
+        decoding="async"
+        fetchpriority={options?.priority ? "high" : "auto"}
+        onLoad={(event) => handleImageLoad(event, item.id)}
+      />
 
       <div className="portfolio-card-overlay" />
 
@@ -234,9 +240,12 @@ const PortfolioSection = () => {
 
         {/* Masonry Grid */}
         <div className={`masonry-grid ${isHighlightsView ? "highlights-grid" : ""}`}>
-          {filteredItems.map((item) => (
+          {filteredItems.map((item, index) => (
             <div key={item.id} className="masonry-item">
-              {renderCard(item, { highlight: isHighlightsView })}
+              {renderCard(item, index, {
+                highlight: isHighlightsView,
+                priority: isHighlightsView && index < 4,
+              })}
             </div>
           ))}
         </div>
