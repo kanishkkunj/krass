@@ -36,7 +36,7 @@ const PortfolioSection = () => {
 
   const curatedAllItems = useMemo(() => {
     if (!baseGalleryItems.length) return [];
-    const desiredCount = Math.min(9, Math.max(5, baseGalleryItems.length));
+    const desiredCount = Math.min(12, Math.max(5, baseGalleryItems.length));
     const shuffled = [...baseGalleryItems];
     for (let i = shuffled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
