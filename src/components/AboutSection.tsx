@@ -1,5 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "framer-motion";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import AnimatedSection from "./AnimatedSection";
 const AboutSection = () => {
   const imageSrc = "/company.jpg"; // place your image at public/company.jpg
@@ -19,6 +20,70 @@ const AboutSection = () => {
     Studomatrix: "scale-150",
     "Seven Magpie": "scale-[1.8]"
   };
+  const autoScrollSpeed = 90; // pixels per second for continuous motion
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const manualResumeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isManualScroll, setIsManualScroll] = useState(false);
+
+  const scheduleAutoResume = useCallback(() => {
+    if (manualResumeTimeout.current) clearTimeout(manualResumeTimeout.current);
+    manualResumeTimeout.current = setTimeout(() => {
+      setIsManualScroll(false);
+      manualResumeTimeout.current = null;
+    }, 1500);
+  }, []);
+
+  const registerManualInteraction = useCallback(() => {
+    setIsManualScroll(true);
+    scheduleAutoResume();
+  }, [scheduleAutoResume]);
+
+  const scrollByAmount = useCallback((direction: "left" | "right") => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    registerManualInteraction();
+    container.scrollBy({
+      left: direction === "left" ? -320 : 320,
+      behavior: "smooth",
+    });
+  }, [registerManualInteraction]);
+
+  useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    let animationId: number;
+    let lastTime = performance.now();
+
+    const step = (timestamp: number) => {
+      const currentContainer = scrollContainerRef.current;
+      if (!currentContainer) return;
+
+      const delta = timestamp - lastTime;
+      lastTime = timestamp;
+
+      if (!isManualScroll) {
+        const loopPoint = currentContainer.scrollWidth / 2;
+        if (loopPoint > 0) {
+          currentContainer.scrollLeft += (delta * autoScrollSpeed) / 1000;
+          if (currentContainer.scrollLeft >= loopPoint) {
+            currentContainer.scrollLeft = currentContainer.scrollLeft - loopPoint;
+          }
+        }
+      }
+
+      animationId = requestAnimationFrame(step);
+    };
+
+    animationId = requestAnimationFrame(step);
+    return () => cancelAnimationFrame(animationId);
+  }, [isManualScroll]);
+
+  useEffect(() => () => {
+    if (manualResumeTimeout.current) clearTimeout(manualResumeTimeout.current);
+  }, []);
+
+  const loopingBrands = useMemo(() => [...brands, ...brands], [brands]);
   return <section id="about" className="section-padding bg-card relative overflow-hidden">
       {/* Decorative gradient */}
       <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
@@ -127,57 +192,52 @@ const AboutSection = () => {
             </div>
           </AnimatedSection>
 
-          {/* Carousel with auto-scroll */}
-          <div className="relative overflow-hidden">
-            <motion.div
-              className="flex gap-8 py-8"
-              animate={{ x: [0, -1200] }}
-              transition={{
-                duration: 20,
-                repeat: Infinity,
-                ease: "linear"
-              }}
+          {/* Carousel with auto + manual scroll */}
+          <div className="relative">
+            <div
+              ref={scrollContainerRef}
+              className="overflow-x-auto py-8"
+              onWheel={registerManualInteraction}
+              onTouchStart={registerManualInteraction}
+              onPointerDown={registerManualInteraction}
+              onTouchEnd={scheduleAutoResume}
+              onPointerUp={scheduleAutoResume}
             >
-              {/* First set of logos */}
-              {brands.map((brand, index) => (
-                <motion.div
-                  key={`${brand.name}-1-${index}`}
-                  className="flex-shrink-0"
-                  whileHover={{ scale: 1.1, y: -5 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="w-40 h-32 rounded-lg border border-border/50 bg-card/50 flex items-center justify-center p-4 hover:bg-card hover:border-primary/50 transition-all duration-300">
-                    <img
-                      src={brand.logo}
-                      alt={brand.name}
-                      className={`w-full h-full object-scale-down ${brandScaleClasses[brand.name] ?? ""}`}
-                    />
-                  </div>
-                </motion.div>
-              ))}
+              <div className="flex gap-8 min-w-max pr-8">
+                {loopingBrands.map((brand, index) => (
+                  <motion.div
+                    key={`${brand.name}-${index}`}
+                    className="flex-shrink-0"
+                    whileHover={{ scale: 1.05, y: -5 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <div className="w-40 h-32 rounded-lg border border-border/50 bg-card/50 flex items-center justify-center p-4 hover:bg-card hover:border-primary/50 transition-all duration-300">
+                      <img
+                        src={brand.logo}
+                        alt={brand.name}
+                        className={`w-full h-full object-scale-down ${brandScaleClasses[brand.name] ?? ""}`}
+                      />
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
 
-              {/* Duplicate set for seamless loop */}
-              {brands.map((brand, index) => (
-                <motion.div
-                  key={`${brand.name}-2-${index}`}
-                  className="flex-shrink-0"
-                  whileHover={{ scale: 1.1, y: -5 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div className="w-40 h-32 rounded-lg border border-border/50 bg-card/50 flex items-center justify-center p-4 hover:bg-card hover:border-primary/50 transition-all duration-300">
-                    <img
-                      src={brand.logo}
-                      alt={brand.name}
-                      className={`w-full h-full object-scale-down ${brandScaleClasses[brand.name] ?? ""}`}
-                    />
-                  </div>
-                </motion.div>
-              ))}
-            </motion.div>
+            {/* Manual scroll buttons */}
+            <div className="hidden md:flex absolute inset-y-0 left-0 items-center pl-4 z-20">
+              <button className="p-2 rounded-full bg-background/70 border border-border text-foreground hover:text-primary transition-colors" onClick={() => scrollByAmount("left")} onMouseUp={scheduleAutoResume} aria-label="Scroll brands left">
+                <ChevronLeft size={18} />
+              </button>
+            </div>
+            <div className="hidden md:flex absolute inset-y-0 right-0 items-center pr-4 z-20">
+              <button className="p-2 rounded-full bg-background/70 border border-border text-foreground hover:text-primary transition-colors" onClick={() => scrollByAmount("right")} onMouseUp={scheduleAutoResume} aria-label="Scroll brands right">
+                <ChevronRight size={18} />
+              </button>
+            </div>
 
             {/* Gradient overlays for fade effect */}
-            <div className="absolute top-0 left-0 w-20 h-full bg-gradient-to-r from-background to-transparent z-10" />
-            <div className="absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-background to-transparent z-10" />
+            <div className="pointer-events-none absolute top-0 left-0 w-20 h-full bg-gradient-to-r from-background to-transparent z-10" />
+            <div className="pointer-events-none absolute top-0 right-0 w-20 h-full bg-gradient-to-l from-background to-transparent z-10" />
           </div>
         </div>
       </div>

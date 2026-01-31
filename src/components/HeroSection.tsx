@@ -17,8 +17,8 @@ const HeroSection = () => {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${backgroundImageUrl})` }}
         />
-        <div className="absolute inset-0 bg-background/30" />
-        <div className="absolute inset-0 bg-gradient-to-br from-background/50 via-card/30 to-transparent" />
+        <div className="absolute inset-0 bg-black/50 mix-blend-multiply" />
+        <div className="absolute inset-0 bg-gradient-to-br from-background/60 via-card/40 to-transparent" />
       </div>
       
       {/* Decorative elements */}
