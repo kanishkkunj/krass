@@ -28,22 +28,24 @@ const ConsultationSection = () => {
     setIsSubmitting(true);
 
     try {
+      // Initialize EmailJS with public key
+      emailjs.init('c_0Mp0zuSBgKIx9yl');
+
       // Send auto-reply email to user
       await emailjs.send(
-        'service_abn4tsr', // Your EmailJS service ID
-        'template_48aa12t', // Template for user auto-reply
+        'service_5rvf05q', // Your EmailJS service ID
+        'template_bzupp8b', // Template for user auto-reply
         {
           email: formData.email, // Send to user's email
           client_name: formData.name,
           contact_info: 'krassevents@gmail.com or +91 7534907155 / +91 9924680500'
-        },
-        'P1ctHj23VPU7ZGRSt' // Your EmailJS public key
+        }
       );
 
       // Send admin notification email
       await emailjs.send(
-        'service_abn4tsr', // Your EmailJS service ID
-        'template_puwxl37', // Template for admin notification
+        'service_5rvf05q', // Your EmailJS service ID
+        'template_gx40m7i', // Template for admin notification
         {
           email: 'krassevents@gmail.com', // Send to admin email
           from_name: formData.name,
@@ -51,8 +53,7 @@ const ConsultationSection = () => {
           phone: formData.phone,
           event_type: formData.eventType,
           message: formData.message
-        },
-        'P1ctHj23VPU7ZGRSt' // Your EmailJS public key
+        }
       );
 
       setIsSubmitted(true);
