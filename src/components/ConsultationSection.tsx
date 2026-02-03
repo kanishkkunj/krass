@@ -37,7 +37,7 @@ const ConsultationSection = () => {
         'template_bzupp8b', // Template for user auto-reply
         {
           email: formData.email, // Send to user's email
-          client_name: formData.name,
+          from_name: formData.name,
           contact_info: 'krassevents@gmail.com or +91 7534907155 / +91 9924680500'
         }
       );
